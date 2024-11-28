@@ -14,6 +14,12 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/*
+ * <b>All</b> {@code QuarkusTestResource} annotations in the test module
+ * are discovered (regardless of the test which contains the annotation)
+ * and their corresponding {@link io.quarkus.test.common.QuarkusTestResourceLifecycleManager}
+ * started <b>before</b> <b>any</b> test is run.
+ */
 @QuarkusTest
 @TestProfile(DatabaseConnectionTesterTest.DatabaseConnectionTesterProfile.class)
 @QuarkusTestResource(PostgresSourceDatabaseTestResource.class)
@@ -26,8 +32,12 @@ class DatabaseConnectionTesterTest {
     @Test
     void checkConnectionTestRoutesEndpoint() {
         var routeDefinitions = databaseConnectionTester.getRouteCollection().getRoutes();
-        assertTrue(routeDefinitions.stream().map(RouteDefinition::getEndpointUrl).anyMatch(url -> url.equals("timer:source-database-test?delay=-1&repeatCount=1")));
-        assertTrue(routeDefinitions.stream().map(RouteDefinition::getEndpointUrl).anyMatch(url -> url.equals("timer:target-database-test?delay=-1&repeatCount=1")));
+        assertTrue(routeDefinitions.stream()
+                .map(RouteDefinition::getEndpointUrl)
+                .anyMatch("timer:source-database-test?delay=-1&repeatCount=1"::equals));
+        assertTrue(routeDefinitions.stream()
+                .map(RouteDefinition::getEndpointUrl)
+                .anyMatch("timer:target-database-test?delay=-1&repeatCount=1"::equals));
     }
 
     public static class DatabaseConnectionTesterProfile implements QuarkusTestProfile {
