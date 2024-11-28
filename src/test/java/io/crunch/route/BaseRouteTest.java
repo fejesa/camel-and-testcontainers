@@ -5,6 +5,7 @@ import io.quarkus.agroal.DataSource;
 import jakarta.inject.Inject;
 
 import java.sql.SQLException;
+import java.time.LocalDate;
 
 public class BaseRouteTest {
 
@@ -25,5 +26,9 @@ public class BaseRouteTest {
             }
             return count;
         }
+    }
+
+    static String getYear() {
+        return Integer.toString(LocalDate.now().getYear());
     }
 }

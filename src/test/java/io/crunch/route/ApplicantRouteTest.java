@@ -9,7 +9,6 @@ import org.awaitility.Durations;
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.Map;
 
 import static org.awaitility.Awaitility.await;
@@ -48,9 +47,5 @@ class ApplicantRouteTest extends BaseRouteTest {
             "app.archive.command", "load-applicant",
             "app.archive.year", getYear());
         }
-    }
-
-    private static String getYear() {
-        return Integer.toString(LocalDate.now().getYear());
     }
 }
