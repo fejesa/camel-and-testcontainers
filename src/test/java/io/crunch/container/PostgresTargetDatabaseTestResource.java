@@ -42,10 +42,10 @@ public class PostgresTargetDatabaseTestResource<T extends GenericContainer<?>> i
             .withLogConsumer(new Slf4jLogConsumer(logger)).waitingFor(Wait.forListeningPort());
         targetDbContainer.start();
 
-        var targetJDBCUrl = String.format("jdbc:postgresql://%s:%s/%s",
-                targetDbContainer.getHost(),
-                targetDbContainer.getMappedPort(postgresPort),
-                postgresDbName);
+        var targetJDBCUrl = "jdbc:postgresql://%s:%s/%s".formatted(
+            targetDbContainer.getHost(),
+            targetDbContainer.getMappedPort(postgresPort),
+            postgresDbName);
         logger.info("The test target could be accessed through the following JDBC url: {}", targetJDBCUrl);
 
         return mapOf("quarkus.datasource.target.jdbc.url", targetJDBCUrl,
