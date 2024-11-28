@@ -5,62 +5,109 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
-import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.TestcontainersConfiguration;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.Map;
 
-import static org.apache.camel.util.CollectionHelper.mapOf;
-
-public class PostgresTargetDatabaseTestResource<T extends GenericContainer<?>> implements QuarkusTestResourceLifecycleManager {
+/**
+ * A Quarkus test resource lifecycle manager that sets up a PostgreSQL container for integration testing.
+ * This class leverages Testcontainers to provide a pre-configured PostgreSQL instance with a JDBC URL,
+ * which is made accessible to the test environment.
+ *
+ * <p>Note: Both {@link org.testcontainers.containers.PostgreSQLContainer} and
+ * {@link io.quarkus.test.common.QuarkusTestResourceLifecycleManager} define {@code start()} and {@code stop()} methods.
+ * To resolve this conflict, the PostgreSQL container is encapsulated within this class, ensuring proper integration
+ * with Quarkus's test resource lifecycle management.</p>
+ */
+public class PostgresTargetDatabaseTestResource implements QuarkusTestResourceLifecycleManager {
 
     private static final Logger logger = LoggerFactory.getLogger(PostgresTargetDatabaseTestResource.class);
 
-    private static final String POSTGRES_IMAGE = "docker.io/postgres:15.0";
+    private final PostgreSQLContainer<?> container;
 
-    private GenericContainer<?> targetDbContainer;
+    /**
+     * Constructs a new {@link PostgresTargetDatabaseTestResource} and initializes the PostgreSQL container.
+     * The container is configured using values from the application configuration and a custom SQL script.
+     */
+    public PostgresTargetDatabaseTestResource() {
+        var dockerImageName = DockerImageName.parse("postgres").withTag("15.0");
+        container = new PostgreSQLContainer<>(dockerImageName)
+                .withExposedPorts(getDbPort())
+                .withDatabaseName(getDbName())
+                .withUsername(getDbUser())
+                .withPassword(getDbPassword())
+                .withClasspathResourceMapping("init-target-db.sql",
+                        "/docker-entrypoint-initdb.d/init-source-db.sql",
+                        BindMode.READ_ONLY)
+                .withLogConsumer(new Slf4jLogConsumer(logger)).waitingFor(Wait.forListeningPort());
+    }
 
+    /**
+     * Starts the PostgreSQL container and returns configuration properties required by Quarkus tests.
+     *
+     * @return A map containing the JDBC URL for the PostgreSQL container and other test-specific configurations.
+     */
     @Override
     public Map<String, String> start() {
-        var postgresPort = ConfigProvider.getConfig().getValue("datasource.target.port", Integer.class);
-        var postgresDbName = ConfigProvider.getConfig().getValue("datasource.target.dbname", String.class);
-        var postgresDbUser = ConfigProvider.getConfig().getValue("datasource.target.username", String.class);
-        var postgresDbPassword = ConfigProvider.getConfig().getValue("datasource.target.password", String.class);
+        container.start();
 
-        logger.info(TestcontainersConfiguration.getInstance().toString());
+        logger.info("The test target could be accessed through the following JDBC url: {}", container.getJdbcUrl());
 
-        targetDbContainer = new GenericContainer<>(POSTGRES_IMAGE)
-            .withExposedPorts(postgresPort)
-            .withEnv("POSTGRES_USER", postgresDbUser)
-            .withEnv("POSTGRES_PASSWORD", postgresDbPassword)
-            .withEnv("POSTGRES_DB", postgresDbName)
-            .withClasspathResourceMapping("init-target-db.sql",
-                    "/docker-entrypoint-initdb.d/init-source-db.sql",
-                    BindMode.READ_ONLY)
-            .withLogConsumer(new Slf4jLogConsumer(logger)).waitingFor(Wait.forListeningPort());
-        targetDbContainer.start();
-
-        var targetJDBCUrl = "jdbc:postgresql://%s:%s/%s".formatted(
-            targetDbContainer.getHost(),
-            targetDbContainer.getMappedPort(postgresPort),
-            postgresDbName);
-        logger.info("The test target could be accessed through the following JDBC url: {}", targetJDBCUrl);
-
-        return mapOf("quarkus.datasource.target.jdbc.url", targetJDBCUrl,
+        return Map.of("quarkus.datasource.target.jdbc.url", container.getJdbcUrl(),
                 "timer.period", "100",
                 "timer.delay", "0");
     }
 
+    /**
+     * Stops the PostgreSQL container to clean up resources after the tests are complete.
+     */
     @Override
     public void stop() {
         try {
-            if (targetDbContainer != null) {
-                targetDbContainer.stop();
+            if (container != null) {
+                container.stop();
             }
         } catch (Exception ex) {
             logger.error("An issue occurred while stopping the targetDbContainer", ex);
         }
+    }
+
+    /**
+     * Retrieves the database password from the application configuration.
+     *
+     * @return The database password as a {@link String}.
+     */
+    private String getDbPassword() {
+        return ConfigProvider.getConfig().getValue("datasource.target.password", String.class);
+    }
+
+    /**
+     * Retrieves the database username from the application configuration.
+     *
+     * @return The database username as a {@link String}.
+     */
+    private String getDbUser() {
+        return ConfigProvider.getConfig().getValue("datasource.target.username", String.class);
+    }
+
+    /**
+     * Retrieves the database name from the application configuration.
+     *
+     * @return The database name as a {@link String}.
+     */
+    private String getDbName() {
+        return ConfigProvider.getConfig().getValue("datasource.target.dbname", String.class);
+    }
+
+    /**
+     * Retrieves the database port from the application configuration.
+     *
+     * @return The database port as an {@link Integer}.
+     */
+    private Integer getDbPort() {
+        return ConfigProvider.getConfig().getValue("datasource.target.port", Integer.class);
     }
 }
