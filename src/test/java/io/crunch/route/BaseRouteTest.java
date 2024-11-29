@@ -7,7 +7,7 @@ import jakarta.inject.Inject;
 import java.sql.SQLException;
 import java.time.LocalDate;
 
-public class BaseRouteTest {
+public abstract class BaseRouteTest {
 
     @Inject
     @DataSource("target")
