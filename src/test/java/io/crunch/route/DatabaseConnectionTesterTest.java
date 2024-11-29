@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /*
  * <b>All</b> {@code QuarkusTestResource} annotations in the test module
@@ -32,12 +32,12 @@ class DatabaseConnectionTesterTest {
     @Test
     void checkConnectionTestRoutesEndpoint() {
         var routeDefinitions = databaseConnectionTester.getRouteCollection().getRoutes();
-        assertTrue(routeDefinitions.stream()
-                .map(RouteDefinition::getEndpointUrl)
-                .anyMatch("timer:source-database-test?delay=-1&repeatCount=1"::equals));
-        assertTrue(routeDefinitions.stream()
-                .map(RouteDefinition::getEndpointUrl)
-                .anyMatch("timer:target-database-test?delay=-1&repeatCount=1"::equals));
+        assertThat(routeDefinitions.stream()
+            .map(RouteDefinition::getEndpointUrl)
+            .anyMatch("timer:source-database-test?delay=-1&repeatCount=1"::equals)).isTrue();
+        assertThat(routeDefinitions.stream()
+            .map(RouteDefinition::getEndpointUrl)
+            .anyMatch("timer:target-database-test?delay=-1&repeatCount=1"::equals)).isTrue();
     }
 
     public static class DatabaseConnectionTesterProfile implements QuarkusTestProfile {

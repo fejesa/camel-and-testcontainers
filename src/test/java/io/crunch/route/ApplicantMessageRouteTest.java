@@ -11,9 +11,8 @@ import org.junit.jupiter.api.Test;
 import java.sql.SQLException;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(ApplicantMessageRouteTest.ApplicantMessageRouteProfile.class)
@@ -24,19 +23,19 @@ class ApplicantMessageRouteTest extends BaseRouteTest {
 
     @Test
     void whenApplicantMessageRouteIsCalledMessagesAreTransformedToTarget() throws SQLException {
-        assertTrue(applicantMessageRoute.getRouteCollection().getRoutes()
+        assertThat(applicantMessageRoute.getRouteCollection().getRoutes()
             .stream()
             .map(RouteDefinition::getEndpointUrl)
-            .anyMatch(url -> url.equals("timer://load-applicant-message?delay=-1&repeatCount=1")));
+            .anyMatch(url -> url.equals("timer://load-applicant-message?delay=-1&repeatCount=1"))).isTrue();
 
         var sourceQuery = "SELECT count(m.id) FROM APPLICANT_MESSAGE m, APPLICANT a, UNIVERSITY u WHERE a.id = m.a_id AND a.u_id = u.id";
         var targetQuery = "SELECT count(id) FROM APPLICANT_MESSAGE where year = " + getYear();
         var numberOfMessages = getQueryRowCount(sourceQuery, sourceDatasource);
-        assertTrue(numberOfMessages > 0);
+        assertThat(numberOfMessages).isPositive();
         await()
             .atMost(Durations.ONE_MINUTE)
             .pollInterval(Durations.ONE_SECOND)
-            .untilAsserted(() -> assertEquals(numberOfMessages, getQueryRowCount(targetQuery, targetDatasource)));
+            .untilAsserted(() -> assertThat(getQueryRowCount(targetQuery, targetDatasource)).isEqualTo(numberOfMessages));
     }
 
     public static class ApplicantMessageRouteProfile implements QuarkusTestProfile {

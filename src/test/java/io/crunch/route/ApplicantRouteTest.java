@@ -11,9 +11,8 @@ import org.junit.jupiter.api.Test;
 import java.sql.SQLException;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(ApplicantRouteTest.ApplicantRouteProfile.class)
@@ -24,19 +23,19 @@ class ApplicantRouteTest extends BaseRouteTest {
 
     @Test
     void whenApplicantRouteIsCalledApplicantsTransformedToTarget() throws SQLException {
-        assertTrue(applicantRoute.getRouteCollection().getRoutes()
+        assertThat(applicantRoute.getRouteCollection().getRoutes()
             .stream()
             .map(RouteDefinition::getEndpointUrl)
-            .anyMatch(url -> url.equals("timer://load-applicant?delay=-1&repeatCount=1")));
+            .anyMatch(url -> url.equals("timer://load-applicant?delay=-1&repeatCount=1"))).isTrue();
 
         var sourceQuery = "SELECT count(a.id) FROM APPLICANT a, UNIVERSITY u WHERE a.u_id = u.id";
         var targetQuery = "SELECT count(id) FROM APPLICANT where year = " + getYear();
         var numberOfApplicants = getQueryRowCount(sourceQuery, sourceDatasource);
-        assertTrue(numberOfApplicants > 0);
+        assertThat(numberOfApplicants).isPositive();
         await()
             .atMost(Durations.TEN_SECONDS)
             .pollInterval(Durations.ONE_SECOND)
-            .untilAsserted(() -> assertEquals(numberOfApplicants, getQueryRowCount(targetQuery, targetDatasource)));
+            .untilAsserted(() -> assertThat(getQueryRowCount(targetQuery, targetDatasource)).isEqualTo(numberOfApplicants));
     }
 
     public static class ApplicantRouteProfile implements QuarkusTestProfile {
