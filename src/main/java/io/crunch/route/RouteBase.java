@@ -1,6 +1,6 @@
 package io.crunch.route;
 
-import io.crunch.template.Templates;
+import io.crunch.template.SqlTemplates;
 import jakarta.inject.Inject;
 import org.apache.camel.Expression;
 import org.apache.camel.builder.RouteBuilder;
@@ -13,7 +13,7 @@ import java.util.Map;
 public abstract class RouteBase extends RouteBuilder {
 
     @Inject
-    Templates templates;
+    SqlTemplates sqlTemplates;
 
     @ConfigProperty(name = "app.archive.command", defaultValue = "connection-test")
     String command;
@@ -21,12 +21,12 @@ public abstract class RouteBase extends RouteBuilder {
     @ConfigProperty(name = "app.archive.year")
     int year;
 
-    String getTemplate(String templateFileName) throws IOException, URISyntaxException {
-        return templates.getTemplate(year, templateFileName);
+    String getSqlTemplate(String templateFileName) throws IOException, URISyntaxException {
+        return sqlTemplates.getSqlTemplate(year, templateFileName);
     }
 
-    Map<String, Expression> getExpressions(String templateFileName) throws IOException, URISyntaxException {
-        return templates.getJdbcParameterExpressions(year, templateFileName, this);
+    Map<String, Expression> getJdbcParameters(String templateFileName) throws IOException, URISyntaxException {
+        return sqlTemplates.getJdbcParameterExpressions(year, templateFileName, this);
     }
 
     boolean isTriggered(String routeCommand) {

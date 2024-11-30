@@ -21,11 +21,11 @@ import java.util.stream.Stream;
 
 /**
  * A service for managing and processing templates stored in a configurable folder.
- * This class provides methods to read template files, extract placeholders, and generate
+ * This class provides methods to read SQL template files, extract placeholders, and generate
  * expressions for use in Apache Camel routes.
  */
 @ApplicationScoped
-public class Templates {
+public class SqlTemplates {
 
     /** The name of the folder containing the templates. */
     private final String templateFolder;
@@ -37,11 +37,11 @@ public class Templates {
     private static final Pattern pattern = Pattern.compile(":\\?\\w+");
 
     /**
-     * Constructs the {@link Templates} service and initializes the template folder path.
+     * Constructs the {@link SqlTemplates} service and initializes the template folder path.
      *
      * @param templateFolder the folder where templates are stored, injected from the application configuration.
      */
-    public Templates(@ConfigProperty(name = "app.archive.template.folder") String templateFolder) {
+    public SqlTemplates(@ConfigProperty(name = "app.archive.template.folder") String templateFolder) {
         this.templateFolder = templateFolder;
     }
 
@@ -54,7 +54,7 @@ public class Templates {
      * @throws IOException          if an I/O error occurs while reading the file.
      * @throws URISyntaxException   if the template file's URI is malformed.
      */
-    public String getTemplate(int year, String templateFile) throws IOException, URISyntaxException {
+    public String getSqlTemplate(int year, String templateFile) throws IOException, URISyntaxException {
         var path = getTemplatePath(templateFile);
         try (Stream<String> lines = Files.lines(path, StandardCharsets.UTF_8)) {
             return lines.collect(Collectors.joining(" "));
@@ -90,7 +90,7 @@ public class Templates {
      * @throws URISyntaxException   if the template file's URI is malformed.
      */
     private Stream<String> getParameters(int year, String templateFile) throws IOException, URISyntaxException {
-        var matcher = pattern.matcher(getTemplate(year, templateFile));
+        var matcher = pattern.matcher(getSqlTemplate(year, templateFile));
         return matcher.results()
                 .map(MatchResult::group)
                 .map(s -> s.substring(2));// trims the first two characters ":?"

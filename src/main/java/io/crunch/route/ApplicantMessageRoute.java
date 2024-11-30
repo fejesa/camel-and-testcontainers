@@ -50,15 +50,15 @@ public class ApplicantMessageRoute extends RouteBase {
             from("timer://load-applicant-message?delay=-1&repeatCount=1")
                 .routeId("applicant-message-route")
                 .setBody()
-                    .simple(getTemplate(SOURCE_QUERY_TEMPLATE))
+                    .simple(getSqlTemplate(SOURCE_QUERY_TEMPLATE))
                     .log("-> Extracting data from Source Database {{quarkus.datasource.source.jdbc.url}}, SQL command: ${body}")
                 .to("jdbc:source")
                 .split(body())
                 .process(this::transform)
                     .log("-> Transforming message ${body[id]} of applicant: ${body[can_id]}")
                     // The query parameters are set as headers in the message, and the SQL command is set as the message body.
-                    .setHeaders(getExpressions(TARGET_QUERY_TEMPLATE))
-                    .setBody(constant(getTemplate(TARGET_QUERY_TEMPLATE)))
+                    .setHeaders(getJdbcParameters(TARGET_QUERY_TEMPLATE))
+                    .setBody(constant(getSqlTemplate(TARGET_QUERY_TEMPLATE)))
                     .log("-> Loading transformed data in target database, SQL command: ${body}")
                 // useHeadersAsParameters: Set this option to true to use the prepareStatementStrategy with named parameters.
                 // This allows to define queries with named placeholders, and use headers with the dynamic values for the query placeholders.
