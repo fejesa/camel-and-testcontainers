@@ -9,7 +9,7 @@ This project demonstrates how to combine Apache Camel with Testcontainers to tes
 ## Use Case
 Imagine a messaging platform for universities to communicate with applicants. Messages are stored in a database, and at the end of each year, they must be archived. This process involves:
 
-* **Reading messages** from the active database.
+* **Reading records** from the active database.
 * **Transforming data** as needed.
 * **Storing the transformed data** into archive database.
 
@@ -35,12 +35,12 @@ Here’s a simplified route implementation for the archiving process:
 from("timer://load-applicant")
     .routeId("applicant-route")
     .setBody()
-        .simple(getTemplate("source-query.sql"))
+        .simple(getSqlTemplate("source-query.sql"))
     .to("jdbc:source")
     .split(body())
     .process(this::transform)
-        .setHeaders(getExpressions("target-query.sql"))
-        .setBody(constant(getTemplate("target-query.sql")))
+        .setHeaders(getJdbcParameters("target-query.sql"))
+        .setBody(constant(getSqlTemplate("target-query.sql")))
     .to("jdbc:target");
 ```
 * **Timer**: Triggers the process.
@@ -116,6 +116,10 @@ class DatabaseConnectionTesterTest {
     }
 }
 ```
+where both the source and target databases were started automatically before the test execution, and connections to them were tested.
+
+## Configuration
+Databases connection properties are set in the `application.properties` file.
 
 ## Building the project
 ### Prerequisites
